@@ -3,6 +3,7 @@ import Floor from './Floor'
 import Obstacles from './Obstacles'
 import Player from './Player'
 import { useControls } from 'leva'
+import Box from './Box'
 
 function ToggleDebug({ children }) {
   const debugRendererVisible = useControls('Debug Renderer', { visible: false })
@@ -22,7 +23,7 @@ export default function Game() {
     <>
       <ToggleDebug>
         <Floor />
-        <Obstacles />
+        <Box />
         <Player position={[0, 1, 0]} />
       </ToggleDebug>
     </>

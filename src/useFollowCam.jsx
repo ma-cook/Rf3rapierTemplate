@@ -11,12 +11,16 @@ export default function useFollowCam(ref, offset) {
   const pitch = useMemo(() => new Object3D(), [])
   const worldPosition = useMemo(() => new Vector3(), [])
 
+  const secondGroup = useMemo(() => new Object3D(), [])
+  const MIN_PITCH = -75 * (Math.PI / 180)
+  const MAX_PITCH = 50 * (Math.PI / 180)
+
   function onDocumentMouseMove(e) {
     if (document.pointerLockElement) {
       e.preventDefault()
       yaw.rotation.y -= e.movementX * 0.002
       const v = pitch.rotation.x - e.movementY * 0.002
-      if (v > -1 && v < 0.1) {
+      if (v > MIN_PITCH && v < MAX_PITCH) {
         pitch.rotation.x = v
       }
     }
@@ -41,6 +45,9 @@ export default function useFollowCam(ref, offset) {
     pitch.add(camera)
     camera.position.set(offset[0], 0, offset[2])
 
+    alt.add(secondGroup)
+    console.log(secondGroup)
+
     document.addEventListener('mousemove', onDocumentMouseMove)
     document.addEventListener('mousewheel', onDocumentMouseWheel, { passive: false })
     return () => {
@@ -54,5 +61,5 @@ export default function useFollowCam(ref, offset) {
     pivot.position.lerp(worldPosition, delta * 5)
   })
 
-  return { pivot, alt, yaw, pitch }
+  return { pivot, alt, yaw, pitch, secondGroup }
 }
