@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef, useEffect } from 'react'
+import { Suspense, useMemo, useRef, useEffect, useState } from 'react'
 import { Vector3, Euler, Quaternion, Matrix4, Raycaster, SphereGeometry, MeshBasicMaterial, Mesh } from 'three'
 import Eve from './Eve'
 import { useCompoundBody } from '@react-three/cannon'
@@ -32,6 +32,46 @@ export default function Player({ position }) {
   const { groundObjects, actions, mixer, setTime, setFinished } = useStore((state) => state)
   const reticule = useRef() // Ref for the reticule mesh
   const raycaster = useMemo(() => new Raycaster(), [])
+  const defaultPosition = new Vector3(0, 0, -50)
+  const lasers = useStore((state) => state.lasers)
+  const laserGroup = useRef()
+  const [isRightMouseDown, setRightMouseDown] = useState(false)
+  const handleMouseDown = (event) => {
+    if (event.button === 2) {
+      setRightMouseDown(true)
+    }
+  }
+
+  const handleMouseUp = (event) => {
+    if (event.button === 2) {
+      setRightMouseDown(false)
+    }
+  }
+
+  const shootLasers = () => {
+    // Create lasers and set their positions
+    const laserGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.5)
+    const laserMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+    const laserMesh = new THREE.Mesh(laserGeometry, laserMaterial)
+    laserMesh.position.set(secondGroup.current.position.x, secondGroup.current.position.y + 1, secondGroup.current.position.z)
+    laserMesh.quaternion.copy(secondGroup.current.quaternion)
+
+    // Add the lasers to the scene
+    laserGroup.current.add(laserMesh)
+
+    // Add the lasers to the state for later reference
+    lasers.push(laserMesh)
+  }
+
+  useEffect(() => {
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [])
 
   const containerGroup = useRef()
 
@@ -56,7 +96,23 @@ export default function Player({ position }) {
     }
   }, [])
 
-  useFrame(() => {
+  useFrame(({ raycaster }, delta) => {
+    lasers.forEach((laser) => {
+      // Assuming lasers have a property like 'direction' that indicates their movement direction
+      const laserDirection = new Vector3(0, 0, -1).applyQuaternion(laser.quaternion)
+      laser.position.add(laserDirection.clone().multiplyScalar(100 * delta)) // Adjust the speed as needed
+
+      // You may also want to remove lasers that are too far from the player
+      if (laser.position.distanceTo(group.current.position) > 100) {
+        laserGroup.current.remove(laser)
+        // Remove the laser from the state as well
+        lasers.splice(lasers.indexOf(laser), 1)
+      }
+    })
+
+    if (isRightMouseDown) {
+      shootLasers()
+    }
     // Update the raycaster based on the mouse position
     raycaster.setFromCamera({ x: 0, y: 0 }, camera)
 
@@ -67,6 +123,11 @@ export default function Player({ position }) {
       // If there is an intersection, update the reticule's position
       const intersection = intersects[0]
       reticule.current.position.copy(intersection.point)
+    } else if (reticule.current) {
+      // Also check here for reticule.current before accessing its properties
+      defaultPosition.set(0, 0, -50)
+      defaultPosition.applyMatrix4(camera.matrixWorld)
+      reticule.current.position.lerp(defaultPosition, 0.6)
     }
   })
 
@@ -153,21 +214,20 @@ export default function Player({ position }) {
       // if grounded I can walk
       if (keyboard['KeyW']) {
         activeAction = 1
-        inputVelocity.z = -40 * delta
+        inputVelocity.z = -120 * delta
       }
       if (keyboard['KeyS']) {
         activeAction = 1
-        inputVelocity.z = 40 * delta
+        inputVelocity.z = 120 * delta
       }
       if (keyboard['KeyA']) {
         activeAction = 1
-        inputVelocity.x = -40 * delta
+        inputVelocity.x = -120 * delta
       }
       if (keyboard['KeyD']) {
         activeAction = 1
-        inputVelocity.x = 40 * delta
+        inputVelocity.x = 120 * delta
       }
-      inputVelocity.setLength(0.7) // clamps walking speed
 
       if (activeAction !== prevActiveAction.current) {
         if (prevActiveAction.current !== 1 && activeAction === 1) {
@@ -233,6 +293,7 @@ export default function Player({ position }) {
           <Torso />
         </Suspense>
       </group>
+      <group ref={laserGroup}></group>
     </group>
   )
 }

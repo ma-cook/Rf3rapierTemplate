@@ -8,7 +8,17 @@ import { AnimationMixer } from 'three'
 
 export const useStore = create(() => ({
   groundObjects: {},
-  actions: {},
+  actions: {
+    shoot: () => {
+      set((state) => ({ lasers: [...state.lasers, Date.now()] }))
+      // Implement logic for firing lasers
+    }
+    //toggleSound: (sound) => {
+    // Implement logic for toggling sound
+    //}
+    // ... Other existing actions
+  },
+  lasers: [], // New state for storing laser shots
   mixer: new AnimationMixer()
 }))
 
