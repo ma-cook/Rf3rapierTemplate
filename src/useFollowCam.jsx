@@ -2,16 +2,15 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import { Object3D, Vector3 } from 'three'
 
-export default function useFollowCam(ref, offset) {
+export default function useFollowCam(secondGroup, offset, api) {
   const { scene, camera } = useThree()
-
+  console.log(api)
   const pivot = useMemo(() => new Object3D(), [])
   const alt = useMemo(() => new Object3D(), [])
   const yaw = useMemo(() => new Object3D(), [])
   const pitch = useMemo(() => new Object3D(), [])
   const worldPosition = useMemo(() => new Vector3(), [])
 
-  const secondGroup = useMemo(() => new Object3D(), [])
   const MIN_PITCH = -75 * (Math.PI / 180)
   const MAX_PITCH = 50 * (Math.PI / 180)
 
@@ -43,7 +42,7 @@ export default function useFollowCam(ref, offset) {
     alt.add(yaw)
     yaw.add(pitch)
     pitch.add(camera)
-    camera.position.set(offset[0], 0, offset[2])
+    camera.position.set(offset[0], offset[1], offset[2] + 5)
 
     alt.add(secondGroup)
     console.log(secondGroup)
@@ -56,9 +55,11 @@ export default function useFollowCam(ref, offset) {
     }
   }, [camera])
 
-  useFrame((_, delta) => {
-    ref.current.getWorldPosition(worldPosition)
-    pivot.position.lerp(worldPosition, delta * 5)
+  useFrame(() => {
+    if (secondGroup.current) {
+      secondGroup.current.getWorldPosition(worldPosition)
+      pivot.position.set(worldPosition.x, worldPosition.y, worldPosition.z)
+    }
   })
 
   return { pivot, alt, yaw, pitch, secondGroup }

@@ -1,26 +1,25 @@
-import { useRef, useEffect } from 'react'
-import { usePlane } from '@react-three/cannon'
-import { useLoader } from '@react-three/fiber'
-import { TextureLoader } from 'three'
-import { useStore } from './App'
+import { RigidBody } from '@react-three/rapier' // Component for rigid body physics simulation
+import * as THREE from 'three' // Three.js library
 
+// Function to convert an angle from degrees to radians
+const angleToRadians = (angleInDeg) => (Math.PI / 180) * angleInDeg
+
+// Array of data defining the positions and rotations of walls
+const data = [
+  {
+    position: [0, 0, -20],
+    rotation: [0, 0, 0]
+  }
+]
+
+// Walls component - creates walls and grounds using RigidBody components
 export default function Floor() {
-  const [ref] = usePlane(() => ({ rotation: [-Math.PI / 2, 0, 0], material: 'ground' }), useRef())
-  const texture = useLoader(TextureLoader, 'https://cdn.jsdelivr.net/gh/Sean-Bradley/React-Three-Fiber-Boilerplate@cannonCompounds/public/img/grid.png')
-  const groundObjects = useStore((state) => state.groundObjects)
-
-  useEffect(() => {
-    const id = ref.current.id
-    groundObjects[id] = ref.current
-    return () => {
-      delete groundObjects[id]
-    }
-  }, [groundObjects, ref])
-
   return (
-    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry args={[100, 100]} />
-      <meshStandardMaterial map={texture} />
-    </mesh>
+    <RigidBody type="Static">
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={data[0].position}>
+        <planeGeometry args={[1000, 1000]} />
+        <meshNormalMaterial />
+      </mesh>
+    </RigidBody>
   )
 }
