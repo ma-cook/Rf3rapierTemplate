@@ -1,2 +1,4 @@
-# Arma2
-Created with CodeSandbox
+React-three-fibre + rapier
+
+npm install 
+npm start
