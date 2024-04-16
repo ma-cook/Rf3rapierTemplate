@@ -40,16 +40,6 @@ export default function App() {
           <Stats />
         </Suspense>
       </Canvas>
-      <div id="instructions">
-        WASD to move
-        <br />
-        SPACE to jump.
-        <br />
-        Model from{' '}
-        <a href="https://www.mixamo.com" target="_blank" rel="nofollow noreferrer">
-          Mixamo
-        </a>
-      </div>
     </>
   )
 }
