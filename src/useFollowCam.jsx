@@ -1,15 +1,16 @@
 import { useThree, useFrame } from '@react-three/fiber'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Object3D, Vector3 } from 'three'
 
 export default function useFollowCam(secondGroup, offset, api) {
   const { scene, camera } = useThree()
-  console.log(api)
   const pivot = useMemo(() => new Object3D(), [])
   const alt = useMemo(() => new Object3D(), [])
   const yaw = useMemo(() => new Object3D(), [])
   const pitch = useMemo(() => new Object3D(), [])
   const worldPosition = useMemo(() => new Vector3(), [])
+  const smoothedPosition = useRef(new Vector3())
+  const lerpFactor = 0.15 // Camera position smoothing factor
 
   const MIN_PITCH = -75 * (Math.PI / 180)
   const MAX_PITCH = 50 * (Math.PI / 180)
@@ -58,7 +59,10 @@ export default function useFollowCam(secondGroup, offset, api) {
   useFrame(() => {
     if (secondGroup.current) {
       secondGroup.current.getWorldPosition(worldPosition)
-      pivot.position.set(worldPosition.x, worldPosition.y, worldPosition.z)
+
+      // Smoothly interpolate the pivot position to reduce jittering
+      smoothedPosition.current.lerp(worldPosition, lerpFactor)
+      pivot.position.copy(smoothedPosition.current)
     }
   })
 

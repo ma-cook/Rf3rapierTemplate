@@ -11,7 +11,7 @@ export default function Eve() {
       <group ref={ref}>
         <mesh castShadow receiveShadow>
           <meshStandardMaterial color="grey" />
-          <boxGeometry args={[1, 1, 1]} />
+          <sphereGeometry args={[0.5, 32, 32]} />
         </mesh>
       </group>
     </>

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useCompoundBody } from '@react-three/cannon'
+
 import { useFrame } from '@react-three/fiber'
 
 const positions = [[-5, 1, -5]]

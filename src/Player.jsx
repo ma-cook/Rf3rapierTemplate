@@ -90,41 +90,78 @@ const Player = React.memo(function Player() {
     targetQuaternion.setFromRotationMatrix(rotationMatrix)
   }
 
+  const previousPosition = useRef(new Vector3())
+  const smoothedPosition = useRef(new Vector3())
+  const lerpFactor = 0.2 // Adjust this value between 0.05-0.3 for smoother transitions
+
+  const jumpCooldown = useRef(false)
+  const jumpForce = 15
+
+  const jump = () => {
+    if (!jumpCooldown.current && api.current) {
+      api.current.applyImpulse({ x: 0, y: jumpForce, z: 0 })
+      jumpCooldown.current = true
+      setTimeout(() => {
+        jumpCooldown.current = false
+      }, 500)
+    }
+  }
+
   useFrame(({ raycaster }, delta) => {
-    const speed = 0.8 // Adjust as needed
+    const speed = 0.8
     const direction = new Vector3()
 
     // Get the forward direction of the secondGroup
     secondGroup.current.getWorldDirection(direction)
-
-    // Reverse the direction for the 's' key
-    // Get the right direction for the 'd' and 'a' keys
     const rightDirection = new Vector3().crossVectors(new Vector3(0, 1, 0), direction)
 
-    if (keyboard['KeyW']) {
-      // Move forward
-      api.current.applyImpulse({ x: -direction.x * speed, y: -direction.y * speed, z: -direction.z * speed }, 'center')
+    // Handle movement with improved velocity management
+    if (api.current) {
+      const currentVel = api.current.linvel()
+
+      // Only reset velocity if no movement keys are pressed
+      if (!keyboard['KeyW'] && !keyboard['KeyS'] && !keyboard['KeyA'] && !keyboard['KeyD']) {
+        api.current.setLinvel({
+          x: Math.abs(currentVel.x) < 0.1 ? 0 : currentVel.x * 0.95,
+          y: currentVel.y,
+          z: Math.abs(currentVel.z) < 0.1 ? 0 : currentVel.z * 0.95
+        })
+      }
+
+      // Apply movement forces
+      if (keyboard['KeyW']) {
+        api.current.applyImpulse({ x: -direction.x * speed, y: 0, z: -direction.z * speed })
+      }
+      if (keyboard['KeyS']) {
+        api.current.applyImpulse({ x: direction.x * speed, y: 0, z: direction.z * speed })
+      }
+      if (keyboard['KeyA']) {
+        api.current.applyImpulse({ x: -rightDirection.x * speed, y: 0, z: -rightDirection.z * speed })
+      }
+      if (keyboard['KeyD']) {
+        api.current.applyImpulse({ x: rightDirection.x * speed, y: 0, z: rightDirection.z * speed })
+      }
+      if (keyboard['Space']) {
+        jump()
+      }
     }
-    if (keyboard['KeyS']) {
-      // Move backward
-      api.current.applyImpulse({ x: direction.x * speed, y: direction.y * speed, z: direction.z * speed }, true)
-    }
-    if (keyboard['KeyA']) {
-      // Move left
-      api.current.applyImpulse({ x: -rightDirection.x * speed, y: -rightDirection.y * speed, z: -rightDirection.z * speed }, 'center')
-    }
-    if (keyboard['KeyD']) {
-      // Move right
-      api.current.applyImpulse({ x: rightDirection.x * speed, y: rightDirection.y * speed, z: rightDirection.z * speed }, 'center')
-    }
+
+    // Update position synchronization without smoothing
     if (group.current && secondGroup.current) {
-      const position = new THREE.Vector3()
-      group.current.getWorldPosition(position)
-      secondGroup.current.position.copy(position)
+      const currentPosition = new THREE.Vector3()
+      group.current.getWorldPosition(currentPosition)
+
+      // Add vertical offset for torso position
+      currentPosition.y += 0.5 // Sphere radius
+
+      // Direct position copy without lerp
+      secondGroup.current.position.copy(currentPosition)
+
+      // Keep rotation smoothing
+      updateSecondGroupQuaternion()
     }
 
     updatePlayerPosition(delta)
-
     handleLasersCallback(delta)
   })
 
@@ -132,22 +169,28 @@ const Player = React.memo(function Player() {
     <group ref={containerGroup} position={position}>
       <RigidBody
         ref={api}
-        position={[0, 0, 0]}
-        friction={8}
-        restitution={0.00001}
-        colliders="hull" // Change this to "sphere"
+        position={[0, 0.5, 0]}
+        friction={0.2}
+        restitution={0}
+        colliders="cuboid"
         mass={10.0}
-        angularFactor={[0, 0, 0]} // Set to [0, 1, 0]
-        angularDamping={1}>
+        linearDamping={0.8} // Adjusted damping
+        angularDamping={4}
+        lockRotations={true}
+        type="dynamic">
         {/* First Eve component */}
         <group ref={(groupRef) => (group.current = groupRef)}>
           <Suspense fallback={null}>
             <Eve />
           </Suspense>
         </group>
-        {/* Second Eve component */}
       </RigidBody>
-      <group ref={(secondGroupRef) => (secondGroup.current = secondGroupRef)}>
+
+      {/* Update secondGroup to follow with smoothing */}
+      <group
+        ref={(secondGroupRef) => (secondGroup.current = secondGroupRef)}
+        position={[0, 0, 0]} // Reset initial position
+      >
         <Suspense fallback={null}>
           <Torso />
         </Suspense>

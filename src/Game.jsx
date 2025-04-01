@@ -1,5 +1,5 @@
 import React from 'react'
-import { Debug, useContactMaterial } from '@react-three/cannon'
+
 import Floor from './Floor'
 import Obstacles from './Obstacles'
 import Player from './Player'
